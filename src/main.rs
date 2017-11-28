@@ -14,7 +14,7 @@ fn main() {
 
     //let tokens = c.tokenize("");
 
-      match c.input("fn echo _x => _x ") {
+      match c.input("fn echo x1  => x1 ") {
           Ok(v) => { println!("successful value:{:?}", v) }
           Err(e) => println!("error:{}", e)
       };
@@ -22,12 +22,12 @@ fn main() {
       println!("vars:{:?}", c.variables);
       println!("functions:{:?}", c.functions);
 
-    let l=Lexer::new("fn add _x1 y2 => (x + y)/2").peekable();
+   /* let l=Lexer::new("fn add _x1 y2 => (x + y)/2").peekable();
     println!("lexer:{:?}",l);
 
     for c in l {
         println!("{:?}",c);
-    }
+    }*/
 
     /*
           match c.input("y_2 = 6") {

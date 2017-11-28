@@ -62,7 +62,7 @@ impl Interpreter {
                 let value = self.eval(*expr)?;
                 self.variables.insert(name, value);
                 Ok(value)
-            },
+            }
             Call(name, args) => {
                 let (argn, body) = self.functions.get(&name)
                     .cloned().ok_or(format!("unknown function `{}`", name))?;
@@ -74,7 +74,7 @@ impl Interpreter {
                 let ret = self.eval(body);
                 self.variables = vars;
                 ret
-            },
+            }
             Func(name, args, expr) => {
                 if self.variables.contains_key(&name) {
                     return Err(format!("existing variable with name `{}`", name));
@@ -89,7 +89,7 @@ impl Interpreter {
                     self.functions.remove(&name);
                 }
                 ret
-            },
+            }
         }
     }
 }
@@ -100,6 +100,7 @@ use self::Token::*;
 pub enum Token {
     Ident(String),
     Num(String),
+    InValid(String),
     BinOp(char),
     OpenParen,
     CloseParen,
@@ -136,32 +137,44 @@ impl<'a> Iterator for Lexer<'a> {
 
     fn next(&mut self) -> Option<Token> {
         self.take_while(|c| c.is_whitespace());
-        let mut ret=None;
+        let mut ret = None;
         if let Some(c) = self.input.peek().cloned() {
             match c {
                 c if c.is_alphabetic() => {
                     let ident = self.take_while(|c| c.is_alphanumeric() || c == &'_');
                     if ident == "fn" {
-                        ret= Some(Fn);
+                        ret = Some(Fn);
+                    } else {
+                        ret = Some(Ident(ident));
                     }
-                    ret=Some(Ident(ident));
-                },
-                c if c.is_digit(10) => ret= Some(Num(self.take_while(|c| c.is_digit(10) || c == &'.'))),
-                '+' | '-' | '*' | '/' | '%' => { self.input.next(); ret= Some(BinOp(c)); },
-                '(' => { self.input.next(); ret= Some(OpenParen); },
-                ')' => { self.input.next(); ret= Some(CloseParen); },
+                }
+                c if c.is_digit(10) => ret = Some(Num(self.take_while(|c| c.is_digit(10) || c == &'.'))),
+                '+' | '-' | '*' | '/' | '%' => {
+                    self.input.next();
+                    ret = Some(BinOp(c));
+                }
+                '(' => {
+                    self.input.next();
+                    ret = Some(OpenParen);
+                }
+                ')' => {
+                    self.input.next();
+                    ret = Some(CloseParen);
+                }
                 '=' => {
                     self.input.next();
                     if let Some(&'>') = self.input.peek() {
                         self.input.next();
-                        ret= Some(FatArrow);
+                        ret = Some(FatArrow);
+                    } else {
+                        ret = Some(Eq);
                     }
-                    ret= Some(Eq);
-                },
-                _ => println!("invalid token {}",c),
+                }
+                _ => ret = Some(InValid(format!("invalid token {}",
+                                                self.take_while(|c| c.is_alphanumeric() || c == &'_')))),
             }
         }
-       ret
+        ret
     }
 }
 
@@ -195,7 +208,7 @@ impl<'a> Parser<'a> {
                     '+' | '-' => 2,
                     _ => 1,
                 }
-            },
+            }
             _ => 0,
         }
     }
@@ -232,7 +245,7 @@ impl<'a> Parser<'a> {
                     e => return Err(format!("expected CloseParen, got `{:?}`", e)),
                 }
                 Ok(expr)
-            },
+            }
             Some(Ident(ident)) => {
                 if let Some(&Eq) = self.lexer.peek() {
                     self.lexer.next();
@@ -248,6 +261,7 @@ impl<'a> Parser<'a> {
                 }
                 Ok(Var(ident))
             }
+            Some(InValid(m)) => Err(m),
             e => Err(format!("expected Factor, got `{:?}`", e)),
         }
     }
